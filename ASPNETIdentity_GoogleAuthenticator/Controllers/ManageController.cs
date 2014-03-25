@@ -1,4 +1,7 @@
-﻿using IdentitySample.Models;
+﻿using System.Text;
+using ASPNETIdentity_GoogleAuthenticator;
+using Base32;
+using IdentitySample.Models;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.Owin;
 using Microsoft.Owin.Security;
@@ -6,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
+using OtpSharp;
 
 namespace IdentitySample.Controllers
 {
@@ -47,13 +51,16 @@ namespace IdentitySample.Controllers
                 : message == ManageMessageId.RemovePhoneSuccess ? "Your phone number was removed."
                 : "";
 
+            var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
+
             var model = new IndexViewModel
             {
                 HasPassword = HasPassword(),
                 PhoneNumber = await UserManager.GetPhoneNumberAsync(User.Identity.GetUserId()),
                 TwoFactor = await UserManager.GetTwoFactorEnabledAsync(User.Identity.GetUserId()),
                 Logins = await UserManager.GetLoginsAsync(User.Identity.GetUserId()),
-                BrowserRemembered = await AuthenticationManager.TwoFactorBrowserRememberedAsync(User.Identity.GetUserId())
+                BrowserRemembered = await AuthenticationManager.TwoFactorBrowserRememberedAsync(User.Identity.GetUserId()),
+                IsGoogleAuthenticatorEnabled = user.IsGoogleAuthenticatorEnabled
             };
             return View(model);
         }
@@ -136,6 +143,67 @@ namespace IdentitySample.Controllers
             var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
             if (user != null)
             {
+                await SignInAsync(user, isPersistent: false);
+            }
+            return RedirectToAction("Index", "Manage");
+        }
+
+
+        //
+        // GET: /Manage/EnableGoogleAuthenticator
+        [HttpGet]
+        public async Task<ActionResult> EnableGoogleAuthenticator()
+        {
+            byte[] secretKey = KeyGeneration.GenerateRandomKey(20);
+            string userName = User.Identity.GetUserName();
+            string barcodeUrl = KeyUrl.GetTotpUrl(secretKey, userName) + "&issuer=MySuperApplication";
+
+            var model = new GoogleAuthenticatorViewModel
+            {
+                SecretKey = Base32Encoder.Encode(secretKey),
+                BarcodeUrl = HttpUtility.UrlEncode(barcodeUrl)
+            };
+
+            return View(model); 
+        }
+
+        [HttpPost]
+        public async Task<ActionResult> EnableGoogleAuthenticator(GoogleAuthenticatorViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                byte[] secretKey = Base32Encoder.Decode(model.SecretKey);
+
+                long timeStepMatched = 0;
+                var otp = new Totp(secretKey);
+                if (otp.VerifyTotp(model.Code, out timeStepMatched, new VerificationWindow(2, 2)))
+                {
+                    var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
+                    user.IsGoogleAuthenticatorEnabled = true;
+                    user.GoogleAuthenticatorSecretKey = model.SecretKey;
+                    await UserManager.UpdateAsync(user);
+
+                    return RedirectToAction("Index", "Manage");
+                }
+                else
+                    ModelState.AddModelError("Code", "The Code is not valid");
+            }
+                
+            return View(model);
+        }
+
+        //
+        // GET: /Manage/DisableGoogleAuthenticator
+        public async Task<ActionResult> DisableGoogleAuthenticator()
+        {
+            var user = await UserManager.FindByIdAsync(User.Identity.GetUserId());
+            if (user != null)
+            {
+                user.IsGoogleAuthenticatorEnabled = false;
+                user.GoogleAuthenticatorSecretKey = null;
+
+                await UserManager.UpdateAsync(user);
+
                 await SignInAsync(user, isPersistent: false);
             }
             return RedirectToAction("Index", "Manage");

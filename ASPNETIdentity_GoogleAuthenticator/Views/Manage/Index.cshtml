@@ -49,5 +49,16 @@
                 @Html.ActionLink("[Remember]", "RememberBrowser")
             }
         </p>
+        <p>
+            Google Authenticator Enabled: @(Model.IsGoogleAuthenticatorEnabled)
+            @if (Model.IsGoogleAuthenticatorEnabled)
+            {
+                @Html.ActionLink("[Disable]", "DisableGoogleAuthenticator")
+            }
+            else
+            {
+                @Html.ActionLink("[Enable]", "EnableGoogleAuthenticator")
+            }
+        </p>
     </div>
 </div>

@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Security.Claims;
+using ASPNETIdentity_GoogleAuthenticator;
 using Microsoft.AspNet.Identity;
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.AspNet.Identity.Owin;
@@ -35,10 +36,10 @@ namespace IdentitySample.Models
             manager.PasswordValidator = new PasswordValidator
             {
                 RequiredLength = 6, 
-                RequireNonLetterOrDigit = true,
-                RequireDigit = true,
-                RequireLowercase = true,
-                RequireUppercase = true,
+                RequireNonLetterOrDigit = false,
+                RequireDigit = false,
+                RequireLowercase = false,
+                RequireUppercase = false,
             };
             // Configure user lockout defaults
             manager.UserLockoutEnabledByDefault = true;
@@ -55,6 +56,8 @@ namespace IdentitySample.Models
                 Subject = "SecurityCode",
                 BodyFormat = "Your security code is {0}"
             });
+            manager.RegisterTwoFactorProvider("GoogleAuthenticator", new GoogleAuthenticatorTokenProvider());
+
             manager.EmailService = new EmailService();
             manager.SmsService = new SmsService();
             var dataProtectionProvider = options.DataProtectionProvider;
@@ -140,7 +143,8 @@ namespace IdentitySample.Models
     {
         public Task SendAsync(IdentityMessage message)
         {
-            // Plug in your email service here to send an email.
+            System.Diagnostics.Debug.WriteLine(message.Body);
+
             return Task.FromResult(0);
         }
     }
@@ -149,7 +153,8 @@ namespace IdentitySample.Models
     {
         public Task SendAsync(IdentityMessage message)
         {
-            // Plug in your sms service here to send a text message.
+            System.Diagnostics.Debug.WriteLine(message.Body);
+
             return Task.FromResult(0);
         }
     }
