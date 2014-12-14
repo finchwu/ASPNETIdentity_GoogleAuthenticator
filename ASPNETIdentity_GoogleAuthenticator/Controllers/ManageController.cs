@@ -161,7 +161,7 @@ namespace IdentitySample.Controllers
             var model = new GoogleAuthenticatorViewModel
             {
                 SecretKey = Base32Encoder.Encode(secretKey),
-                BarcodeUrl = HttpUtility.UrlEncode(barcodeUrl)
+                BarcodeUrl =  barcodeUrl
             };
 
             return View(model); 
