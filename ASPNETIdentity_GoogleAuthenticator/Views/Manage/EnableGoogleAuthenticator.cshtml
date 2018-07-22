@@ -17,7 +17,7 @@
         </p>
         @using (Html.BeginForm("EnableGoogleAuthenticator", "Manage", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
         {
-            @Html.AntiForgeryToken()   
+            @Html.AntiForgeryToken()
             @Html.ValidationSummary(false)
             @Html.HiddenFor(m => m.SecretKey)
             @Html.HiddenFor(m => m.BarcodeUrl)
@@ -35,10 +35,22 @@
         }
     </div>
     <div class="col-md-4">
-        <img src="http://qrcode.kaywa.com/img.php?s=4&d=@(Model.BarcodeUrl)"/>
+        <!-- <img src="http://qrcode.kaywa.com/img.php?s=4&d=@(Model.BarcodeUrl)"/>-->
+
+        <div id="davidshimjs-qrcodejs"></div>
     </div>
 </div>
 
 @section Scripts {
-    @Scripts.Render("~/bundles/jqueryval")
+@Scripts.Render("~/bundles/jqueryval")
+
+@Scripts.Render("~/bundles/qrcode")
+    <script type="text/javascript">
+        new QRCode(document.getElementById("davidshimjs-qrcodejs"), {
+            text: "@(Model.BarcodeUrl)",
+            width: 256, height: 256,
+            colorDark: "#000000", colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+    </script>
 }
